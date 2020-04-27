@@ -1,3 +1,3 @@
 source .env
 
-python3 stenographer_bot.py
+python3 playback_bot.py
