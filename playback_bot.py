@@ -15,16 +15,21 @@ from pymumble.pymumble_py3.callbacks import PYMUMBLE_CLBK_TEXTMESSAGERECEIVED as
 from bots.commands.command_listener import CommandListener
 from bots.commands.playback_command import PlaybackCommand
 
+PIPE_NAME_TEMPLATE = 'raw_pcm_{}.pipe'
 
-def sound_received_handler(pcm_stream, _user, soundchunk):
-    pcm_stream.write(soundchunk.pcm)
+# Callback handler for when sound is recieved
+def sound_received_handler(stream_writer, user, soundchunk):
+    writer_name = user['name']
+    if stream_writer.get(writer_name) is None:
+        pipe_name = PIPE_NAME_TEMPLATE.format(writer_name)
+        stream_writer[writer_name] = open(pipe_name, "wb")
+    stream_writer[writer_name].write(soundchunk.pcm)
 
+# Callback handler for when text is recieved
 def text_received_handler(cmd_listener, event):
     cmd = cmd_listener.create_command(event.message)
     if cmd:
         cmd.execute()
-
-PCM_STREAM_WRITER = open("raw_pcm.pipe", "wb")
 
 mumble = Mumble(
     os.environ["MUMBLE_SERVER"].strip(), 
@@ -32,36 +37,53 @@ mumble = Mumble(
     port=int(os.environ.get("MUMBLE_PORT", None)), 
     password=os.environ["MUMBLE_PASSWORD"].strip())
 
-mumble.callbacks.set_callback(PCS, partial(sound_received_handler, PCM_STREAM_WRITER))
-mumble.callbacks.set_callback(PCT, partial(text_received_handler, CommandListener(commands=[PlaybackCommand])))
+stream_writer = {}
+
+mumble.callbacks.set_callback(PCS, partial(sound_received_handler, stream_writer))
+mumble.callbacks.set_callback(PCT, partial(text_received_handler, CommandListener(mumble, commands=[PlaybackCommand])))
 mumble.set_receive_sound(1)  # we want to receive sound
 mumble.start()
 
+stream_reader = {}
 db = pg.connect(os.environ["DB_URL"].strip())
 
-PCM_STREAM_READER = open("raw_pcm.pipe", "rb")
-
-previous_chunk = None
-pcm_chunks = []
+# Bot control loop
 while 1:
     time.sleep(0.5)
 
-    pcm_chunk = PCM_STREAM_READER.read()
-    if pcm_chunk:
-        pcm_chunks.append(pcm_chunk)
-    
-    if previous_chunk and not pcm_chunk:
-        all_chunks = bytearray()
-        for chunk in pcm_chunks:
-            all_chunks += chunk
-        pcm_chunks.clear()
+    # Check the writers and update readers
+    for name in stream_writer:
+        if stream_reader.get(name) is None:
+            # Simple dictonary to keep track of each user recording state
+            # TODO: Bring this into a class to reduce the amount of logic in this control loop
+            stream_obj = {}
+            stream_obj['prev_chunk'] = None
+            stream_obj['pcm_chunks'] = []
+            stream_obj['pipe'] = open(PIPE_NAME_TEMPLATE.format(name), "rb")
+            stream_reader[name] = stream_obj
 
-        try:
-            with db.cursor() as cur:
-                cur.execute("INSERT INTO sound_chunks (pcm_chunk) VALUES (%(p1)s)", {"p1": all_chunks})
-            db.commit()
-        except Exception as e:
-            print("Got error: {}".format(e))
-             
-    previous_chunk = pcm_chunk
+    # Store data from all readers
+    for name in stream_reader:
+        stream_obj = stream_reader[name]
+        pcm_chunk = stream_obj['pipe'].read()
+        if pcm_chunk:
+            stream_obj['pcm_chunks'].append(pcm_chunk)
         
+        # If we had sound in the previous iteration, but no sound in this iteration, save the chunks into the DB.
+        # This is a simple heuristic to know when to cut off recording.
+        if stream_obj['prev_chunk'] and not pcm_chunk:
+            all_chunks = bytearray()
+            for chunk in stream_obj['pcm_chunks']:
+                all_chunks += chunk
+            stream_obj['pcm_chunks'].clear()
+
+            try:
+                with db.cursor() as cur:
+                    cur.execute("""
+                        INSERT INTO sound_chunks (username, pcm_chunk) VALUES (%(username)s, %(pcm)s)
+                    """, {"username": name, "pcm": all_chunks})
+                db.commit()
+            except Exception as e:
+                print("Failed sound_chunk insert: {}".format(e))
+                
+        stream_obj['prev_chunk']  = pcm_chunk

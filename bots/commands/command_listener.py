@@ -1,7 +1,9 @@
 import shlex
 
+# Parses commands received from Mumble 'text received' callback
 class CommandListener:
-    def __init__(self, cmd_prefix="!", commands=None):
+    def __init__(self, mumble, cmd_prefix="!", commands=None):
+        self.mumble=mumble
         if commands is None:
             commands = []
         self.cmd_prefix = cmd_prefix
@@ -24,4 +26,4 @@ class CommandListener:
         cmd_name = self._extract_name(first_arg)
         for Cmd in self.commands:
             if Cmd.name() == cmd_name:
-                return Cmd(args[1:])
+                return Cmd(self.mumble, args[1:])

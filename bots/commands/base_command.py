@@ -1,9 +1,11 @@
-from abc import *
+from abc import ABC, abstractmethod
 from datetime import datetime
 
+# Basic interface for arbitrary commands
 class BaseCommand(ABC):
 
-    def __init__(self, args):
+    def __init__(self, mumble, args):
+        self.mumble=mumble
         self.args = args
         self.created_at = datetime.now()
 

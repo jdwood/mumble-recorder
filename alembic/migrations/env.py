@@ -58,7 +58,7 @@ def run_migrations_online():
     and associate a connection with the context.
 
     """
-    connectable = create_engine(os.environ["DB_URL"])
+    connectable = create_engine(os.environ["DB_URL"].strip())
 
     with connectable.connect() as connection:
         context.configure(

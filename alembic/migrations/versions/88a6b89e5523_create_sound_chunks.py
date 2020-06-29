@@ -20,6 +20,7 @@ def upgrade():
     op.execute("""
         CREATE TABLE sound_chunks (
             id BIGSERIAL PRIMARY KEY,
+            username VARCHAR,
             pcm_chunk BYTEA,
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         );
