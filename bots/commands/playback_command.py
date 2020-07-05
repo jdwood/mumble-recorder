@@ -12,7 +12,7 @@ class PlaybackCommand(BaseCommand):
     # For now, just check that a single arg exists
     def _validate(self):
         validity = True
-        if len(self.args) < 1:
+        if len(self.args) < 2:
             validity =  False
         return validity
 
@@ -21,16 +21,20 @@ class PlaybackCommand(BaseCommand):
         with psycopg2.connect(os.environ["DB_URL"].strip()) as conn:
             with conn.cursor() as cur:
                 cur.execute("""
-                    SELECT pcm_chunk 
-                    FROM sound_chunks
-                    WHERE username = '{}'
-                    ORDER BY created_at DESC
-                    LIMIT 1
-                """.format(self.args[0]))
+                    SELECT pcm_chunk
+                    FROM (
+                        SELECT pcm_chunk, ROW_NUMBER() OVER (PARTITION BY username ORDER BY created_at DESC) as rnum
+                        FROM sound_chunks
+                        WHERE lower(username) = lower(%(username)s)
+                        LIMIT %(offset)s
+                    ) pcm
+                    WHERE rnum = %(offset)s;
+                """, {"username": self.args[0], "offset": self.args[1]})
                 sound_chunks = cur.fetchall()
+                print(cur.query)
         conn.close()
-        
+
         for pcm in sound_chunks:
             sound = bytes(pcm[0])
-            time.sleep(5)
+            time.sleep(0.5)
             self.mumble.sound_output.add_sound(sound)

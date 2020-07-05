@@ -14,6 +14,8 @@ from pymumble.pymumble_py3.callbacks import PYMUMBLE_CLBK_TEXTMESSAGERECEIVED as
 
 from bots.commands.command_listener import CommandListener
 from bots.commands.playback_command import PlaybackCommand
+from bots.commands.alias_command import AliasCommand
+from bots.commands.playback_alias_command import PlaybackAliasCommand
 
 PIPE_NAME_TEMPLATE = 'raw_pcm_{}.pipe'
 
@@ -40,7 +42,7 @@ mumble = Mumble(
 stream_writer = {}
 
 mumble.callbacks.set_callback(PCS, partial(sound_received_handler, stream_writer))
-mumble.callbacks.set_callback(PCT, partial(text_received_handler, CommandListener(mumble, commands=[PlaybackCommand])))
+mumble.callbacks.set_callback(PCT, partial(text_received_handler, CommandListener(mumble, commands=[PlaybackCommand, AliasCommand, PlaybackAliasCommand])))
 mumble.set_receive_sound(1)  # we want to receive sound
 mumble.start()
 
