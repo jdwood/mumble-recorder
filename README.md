@@ -2,7 +2,8 @@
   A simple mumble bot that can playback sound
 
 ## Dependencies
-  Python3, Postgresql, Mumble client and server
+  Python, Postgresql, Mumble client and server
+  opus library `brew install opus`
 
 ## Setup
 

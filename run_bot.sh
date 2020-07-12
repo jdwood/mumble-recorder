@@ -1,3 +1,3 @@
 eval $(cat .env)
 
-python3 playback_bot.py
+python playback_bot.py
