@@ -2,6 +2,7 @@ from bots.commands.base_command import BaseCommand
 import psycopg2
 import os
 import time
+import random
 
 class PlaybackAliasCommand(BaseCommand):
 
@@ -29,6 +30,7 @@ class PlaybackAliasCommand(BaseCommand):
                 print(cur.query)
         conn.close()
 
+        # random.shuffle(sound_chunks)
         for pcm in sound_chunks:
             sound = bytes(pcm[0])
             self.mumble.sound_output.add_sound(sound)

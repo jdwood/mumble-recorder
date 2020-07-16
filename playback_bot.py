@@ -4,6 +4,7 @@
 import os 
 
 import time
+import _thread
 
 import psycopg2 as pg
 from functools import partial 
@@ -18,6 +19,8 @@ from bots.commands.alias_command import AliasCommand
 from bots.commands.playback_alias_command import PlaybackAliasCommand
 from bots.commands.playback_convo import PlaybackConvo
 
+from playback_server import setup_server
+
 PIPE_NAME_TEMPLATE = 'raw_pcm_{}.pipe'
 
 # Callback handler for when sound is recieved
@@ -30,6 +33,7 @@ def sound_received_handler(stream_writer, user, soundchunk):
 
 # Callback handler for when text is recieved
 def text_received_handler(cmd_listener, event):
+    print(event)
     cmd = cmd_listener.create_command(event.message)
     if cmd:
         cmd.execute()
@@ -49,6 +53,10 @@ mumble.start()
 
 stream_reader = {}
 db = pg.connect(os.environ["DB_URL"].strip())
+
+flask_server = setup_server(mumble)
+
+_thread.start_new_thread(flask_server.run, (), {'host': '0.0.0.0'})
 
 # Bot control loop
 while 1:
