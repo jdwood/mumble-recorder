@@ -32,10 +32,10 @@ def setup_server(mumble_client):
     @app.route('/graphql', methods=['POST'])
     def graphql():
         return requests.post(
-            'http://host.docker.internal:8080/v1/graphql',
+            f"{os.environ['API_URL']}/v1/graphql",
             headers={
                 'content-type': 'application/json',
-                'x-hasura-admin-secret': 'nutsnack'
+                'x-hasura-admin-secret': os.environ['HASURA_SECRET']
             },
             data=request.data).text
 
