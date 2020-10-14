@@ -12,7 +12,9 @@ services:
     env_file:
       - bot.env
   ui:
-    build: stenographer-ui/
+    build: 
+      context: ./stenographer-ui/
+      dockerfile: Dockerfile
     volumes:
       - buildvolume:/build
   api:
