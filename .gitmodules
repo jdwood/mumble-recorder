@@ -1,0 +1,3 @@
+[submodule "stenographer-ui"]
+	path = stenographer-ui
+	url = https://github.com/jdwood/stenographer-ui
