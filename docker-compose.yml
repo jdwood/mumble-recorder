@@ -1,0 +1,25 @@
+version: "3.8"
+services:
+  bot:
+    depends_on:
+      - ui
+      - api
+    build: .
+    ports:
+      - "5000:5000"
+    volumes:
+      - buildvolume:/build
+    env_file:
+      - bot.env
+  ui:
+    build: stenographer-ui/
+    volumes:
+      - buildvolume:/build
+  api:
+    image: hasura/graphql-engine:latest
+    ports:
+      - "8080:8080"
+    env_file:
+      - api.env
+volumes:
+  buildvolume: {}

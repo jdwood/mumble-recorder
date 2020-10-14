@@ -1,3 +1,5 @@
+import os
+import requests
 from werkzeug.datastructures import Headers
 from flask import Flask, request, jsonify, redirect, url_for, Response
 from flask_cors import CORS
@@ -25,7 +27,7 @@ def setup_server(mumble_client):
     limiter = Limiter(
         app,
         key_func=get_remote_address,
-        default_limits=["1/second"]
+        default_limits=["2/second"]
     )
 
     @auth.verify_password
@@ -60,5 +62,15 @@ def setup_server(mumble_client):
         cmd = PlaybackAliasCommand(mumble_client, args=[alias_name])
         cmd.execute()
         return 'playback-alias'
+
+    @app.route('/graphql', methods=['POST'])
+    def graphql():
+        return requests.post(
+            'http://host.docker.internal:8080/v1/graphql',
+            headers={
+                'content-type': 'application/json',
+                'x-hasura-admin-secret': 'nutsnack'
+            },
+            data=request.data).text
 
     return app
