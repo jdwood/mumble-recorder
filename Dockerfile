@@ -4,7 +4,7 @@ RUN apt-get update \
     && apt-get install -y libopus0 opus-tools yarn
 
 COPY requirements.txt requirements.txt
-COPY pymumble/requirements.txt pymumble/requirements.txt
+COPY stenographer/pymumble/requirements.txt pymumble/requirements.txt
 
 RUN pip install -r requirements.txt -r pymumble/requirements.txt
 

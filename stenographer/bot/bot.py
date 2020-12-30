@@ -9,17 +9,17 @@ import _thread
 import psycopg2 as pg
 from functools import partial 
 
-from pymumble.pymumble_py3 import Mumble
-from pymumble.pymumble_py3.callbacks import PYMUMBLE_CLBK_SOUNDRECEIVED as PCS
-from pymumble.pymumble_py3.callbacks import PYMUMBLE_CLBK_TEXTMESSAGERECEIVED as PCT
+from ..pymumble.pymumble_py3 import Mumble
+from ..pymumble.pymumble_py3.callbacks import PYMUMBLE_CLBK_SOUNDRECEIVED as PCS
+from ..pymumble.pymumble_py3.callbacks import PYMUMBLE_CLBK_TEXTMESSAGERECEIVED as PCT
 
-from bots.commands.command_listener import CommandListener
-from bots.commands.playback_command import PlaybackCommand
-from bots.commands.alias_command import AliasCommand
-from bots.commands.playback_alias_command import PlaybackAliasCommand
-from bots.commands.playback_convo import PlaybackConvo
+from .commands.command_listener import CommandListener
+from .commands.playback_command import PlaybackCommand
+from .commands.alias_command import AliasCommand
+from .commands.playback_alias_command import PlaybackAliasCommand
+from .commands.playback_convo import PlaybackConvo
 
-from playback_server import setup_server
+from ..server.server import setup_server
 
 PIPE_NAME_TEMPLATE = 'raw_pcm_{}.pipe'
 
@@ -31,7 +31,7 @@ def sound_received_handler(stream_writer, user, soundchunk):
         stream_writer[writer_name] = open(pipe_name, "wb")
     stream_writer[writer_name].write(soundchunk.pcm)
 
-# Callback handler for when text is recieved
+# Callback handler for when text is received
 def text_received_handler(cmd_listener, event):
     print(event)
     cmd = cmd_listener.create_command(event.message)
@@ -42,7 +42,8 @@ mumble = Mumble(
     os.environ["MUMBLE_SERVER"].strip(), 
     os.environ["MUMBLE_USER"].strip(),
     port=int(os.environ.get("MUMBLE_PORT", None)), 
-    password=os.environ["MUMBLE_PASSWORD"].strip())
+    password=os.environ["MUMBLE_PASSWORD"].strip(),
+    reconnect=True)
 
 stream_writer = {}
 
@@ -58,9 +59,24 @@ flask_server = setup_server(mumble)
 
 _thread.start_new_thread(flask_server.run, (), {'host': '0.0.0.0'})
 
-# Bot control loop
-while 1:
+i = 0
+while True:
     time.sleep(0.5)
+
+    # Prevent AFK behavior by saying 'STFU' every ~20 minutes
+    if i == 0:
+        PlaybackAliasCommand(mumble, ['Stfu']).execute()
+    i = 0 if i == 2400 else i + 1
+
+    # Also will prevent AFK behavior - move to the channel with the largest group of people
+    max_pop_channel = None
+    for _, c in mumble.channels.items():
+        if max_pop_channel is None:
+            max_pop_channel = c
+        elif len(c.get_users()) > len(max_pop_channel.get_users()):
+            max_pop_channel = c
+    if max_pop_channel:
+        max_pop_channel.move_in()
 
     # Check the writers and update readers
     for name in stream_writer:

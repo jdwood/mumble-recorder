@@ -5,10 +5,10 @@ from flask_cors import CORS
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
 
-from bots.commands.playback_alias_command import PlaybackAliasCommand
+from ..bot.commands.playback_alias_command import PlaybackAliasCommand
 
 def setup_server(mumble_client):
-    app = Flask(__name__, static_folder='./build', static_url_path='/')
+    app = Flask(__name__, static_folder='/build', static_url_path='/')
     CORS(app)
     limiter = Limiter(
         app,

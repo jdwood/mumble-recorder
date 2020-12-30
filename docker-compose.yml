@@ -19,6 +19,7 @@ services:
       - ui_build:/build
   api:
     image: hasura/graphql-engine:latest
+    hostname: stenographer-api
     ports:
       - "8080:8080"
     env_file:

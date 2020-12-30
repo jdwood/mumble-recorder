@@ -1,4 +1,4 @@
-from bots.commands.base_command import BaseCommand
+from .base_command import BaseCommand
 import psycopg2
 import os
 import time

@@ -2,4 +2,4 @@
 
 eval $(cat .env)
 
-python playback_bot.py
+python -m stenographer.bot.bot.py
